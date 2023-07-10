@@ -78,6 +78,7 @@ type VM struct {
 	Memory []byte
 	IP     uint32
 	header executableHeader
+	data []byte
 	Debug  Debug
 }
 
@@ -239,6 +240,7 @@ func (v *VM) Load(file string, debug bool) error {
 	initSR(v)
 	initGR(v)
 	setHeader(v)
+	v.data = v.Memory[(uint32)(v.header.hdrlen) + v.header.text:]
 	return nil
 }
 
