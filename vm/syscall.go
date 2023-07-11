@@ -1,7 +1,12 @@
 package vm
 
 import (
+	"bytes"
 	"encoding/binary"
+	"errors"
+	"fmt"
+	"os"
+	"syscall"
 )
 
 const (
@@ -91,78 +96,99 @@ const (
 )
 
 type MS1 struct {
-	m1i1 int16
-	m1i2 int16
-	m1i3 int16
-	m1p1 uint16
-	m1p2 uint16
-	m1p3 uint16
+	M1i1 int16
+	M1i2 int16
+	M1i3 int16
+	M1p1 uint16
+	M1p2 uint16
+	M1p3 uint16
 }
 
 type MS2 struct {
-	m2i1 int16
-	m2i2 int16
-	m2i3 int16
-	m2l1 int32
-	m2l2 int32
-	m2p1 uint16
+	M2i1 int16
+	M2i2 int16
+	M2i3 int16
+	M2l1 int32
+	M2l2 int32
+	M2p1 uint16
 }
 
 type MS3 struct {
-	m3i1 int16
-	m3i2 int16
-	m3p1 uint16
-	m3ca1 uint16
+	M3i1  int16
+	M3i2  int16
+	M3p1  uint16
+	M3ca1 uint16
 }
 
 type MS4 struct {
-	m4l1 int32
-	m4l2 int32
-	m4l3 int32
-	m4l4 int32
-	m4l5 int32
+	M4l1 int32
+	M4l2 int32
+	M4l3 int32
+	M4l4 int32
+	M4l5 int32
 }
 
 type MS5 struct {
-	m5c1 int8
-	m5c2 int8
-	m5i1 int16
-	m5i2 int16
-	m5l1 int32
-	m5l2 int32
-	m5l3 int32
+	M5c1 int8
+	M5c2 int8
+	M5i1 int16
+	M5i2 int16
+	M5l1 int32
+	M5l2 int32
+	M5l3 int32
 }
 
 type MS6 struct {
-	m6i1 int16
-	m6i2 int16
-	m6i3 int16
-	m6l1 int32
-	m6f1 int16
+	M6i1 int16
+	M6i2 int16
+	M6i3 int16
+	M6l1 int32
+	M6f1 int16
 }
 
 type MSG struct {
-	m_source int16
-	m_type int16
-	ms1 MS1
-	ms2 MS2
-	ms3 MS3
-	ms4 MS4
-	ms5 MS5
-	ms6 MS6
+	M_source int16
+	M_type   int16
 }
 
-func syscall(v *VM, who, syscallnr int, msg *MSG) {
-
-	switch (syscallnr) {
+func X86syscall(v *VM) (MSG, error) {
+	msg := MSG{}
+	br := bytes.NewReader(v.Data[v.CPU.GR[BX]:])
+	var err error = nil
+	binary.Read(br, binary.LittleEndian, &msg)
+	switch msg.M_type {
 	case EXIT:
+		{
+			msg1 := MS1{}
+			arg := v.Data[v.CPU.GR[BX]+4:]
+			br = bytes.NewReader(arg)
+			binary.Read(br, binary.LittleEndian, &msg1)
+			if v.Debug.DebugMode {
+				fmt.Fprintf(os.Stderr, "<exit(%d)>\n", msg1.M1i1)
+			}
+			err = errors.New("end of program")
+		}
 	case FORK:
 	case READ:
 	case WRITE:
-		msg.ms1.m1i1 = (int16)(binary.LittleEndian.Uint16(v.data[v.CPU.GR[BX]:v.CPU.GR[BX]+2]))
-		msg.ms1.m1i2 = (int16)(binary.LittleEndian.Uint16(v.data[v.CPU.GR[BX]+2:v.CPU.GR[BX]+4]))
-		msg.ms1.m1i3 = (int16)(binary.LittleEndian.Uint16(v.data[v.CPU.GR[BX]+4:v.CPU.GR[BX]+6]))
-		// m1i1~3のポインタのポインタが挿すデータを使う
+		{
+			msg1 := MS1{}
+			arg := v.Data[v.CPU.GR[BX]+4:]
+			br = bytes.NewReader(arg)
+			binary.Read(br, binary.LittleEndian, &msg1)
+			if v.Debug.DebugMode {
+				fmt.Fprintf(os.Stderr, "<write(%d, 0x%04x, %d)", msg1.M1i1, v.CPU.GR[BX]+msg1.M1p1, msg1.M1i2)
+			}
+			ret, err := syscall.Write((int)(msg1.M1i1), v.Data[v.CPU.GR[BX]+msg1.M1p1:v.CPU.GR[BX]+msg1.M1p1+(uint16)(msg1.M1i2)])
+			if err != nil {
+				msg.M_type = -(int16)(err.(syscall.Errno))
+				break
+			}
+			msg.M_type = (int16)(ret)
+			if v.Debug.DebugMode {
+				fmt.Fprintf(os.Stderr, " ==> %d>\n", msg.M_type)
+			}
+		}
 	case OPEN:
 	case CLOSE:
 	case WAIT:
@@ -220,4 +246,5 @@ func syscall(v *VM, who, syscallnr int, msg *MSG) {
 	case REBOOT:
 	case SVRCTL:
 	}
+	return msg, err
 }
