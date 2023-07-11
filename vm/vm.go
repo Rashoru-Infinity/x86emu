@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"os"
@@ -77,8 +78,8 @@ type VM struct {
 	CPU    CPU
 	Memory []byte
 	IP     uint32
-	header executableHeader
-	data []byte
+	Header executableHeader
+	Data   []byte
 	Debug  Debug
 }
 
@@ -88,98 +89,78 @@ type Debug struct {
 }
 
 type executableHeader struct {
-	magic   uint16
-	flags   uint8
-	cpu     uint8
-	hdrlen  uint8
-	unused  uint8
-	version uint16
-	text    uint32
-	data    uint32
-	bss     uint32
-	entry   uint32
-	total   uint32
-	syms    uint32
+	Magic   uint16
+	Flags   uint8
+	Cpu     uint8
+	Hdrlen  uint8
+	Unused  uint8
+	Version uint16
+	Text    uint32
+	Data    uint32
+	Bss     uint32
+	Entry   uint32
+	Total   uint32
+	Syms    uint32
 }
 
 func initFR(v *VM) {
-	v.CPU.FR = make(map[int]bool)
-	v.CPU.FR[OF] = false
-	v.CPU.FR[DF] = false
-	v.CPU.FR[IF] = false
-	v.CPU.FR[TF] = false
-	v.CPU.FR[SF] = false
-	v.CPU.FR[ZF] = false
-	v.CPU.FR[AF] = false
-	v.CPU.FR[PF] = false
-	v.CPU.FR[CF] = false
+	v.CPU.FR = map[int]bool{
+		OF: false,
+		DF: false,
+		IF: false,
+		TF: false,
+		SF: false,
+		ZF: false,
+		AF: false,
+		PF: false,
+		CF: false,
+	}
 }
 
 func initSR(v *VM) {
-	v.CPU.SR = make(map[int]uint16)
-	v.CPU.SR[ES] = 0
-	v.CPU.SR[CS] = 0
-	v.CPU.SR[SS] = 0
-	v.CPU.SR[DS] = 0
+	v.CPU.SR = map[int]uint16{
+		ES: 0,
+		CS: 0,
+		SS: 0,
+		DS: 0,
+	}
 }
 
 func initGR(v *VM) {
-	v.CPU.GR = make(map[int]uint16)
-	v.CPU.GR[AX] = 0
-	v.CPU.GR[CX] = 0
-	v.CPU.GR[DX] = 0
-	v.CPU.GR[BX] = 0
-	v.CPU.GR[SP] = 0
-	v.CPU.GR[BP] = 0
-	v.CPU.GR[SI] = 0
-	v.CPU.GR[DI] = 0
+	v.CPU.GR = map[int]uint16{
+		AX: 0,
+		CX: 0,
+		DX: 0,
+		BX: 0,
+		SP: 0,
+		BP: 0,
+		SI: 0,
+		DI: 0,
+	}
 }
 
 func setHeader(v *VM) {
-	offset := 0
-	v.header.magic = binary.LittleEndian.Uint16(v.Memory[offset : offset+2])
-	offset += 2
-	v.header.flags = (uint8)(v.Memory[offset])
-	offset++
-	v.header.cpu = (uint8)(v.Memory[offset])
-	offset++
-	v.header.hdrlen = (uint8)(v.Memory[offset])
-	offset++
-	v.header.unused = (uint8)(v.Memory[offset])
-	offset++
-	v.header.version = binary.LittleEndian.Uint16(v.Memory[offset : offset+2])
-	offset += 2
-	v.header.text = binary.LittleEndian.Uint32(v.Memory[offset : offset+4])
-	offset += 4
-	v.header.data = binary.LittleEndian.Uint32(v.Memory[offset : offset+4])
-	offset += 4
-	v.header.bss = binary.LittleEndian.Uint32(v.Memory[offset : offset+4])
-	offset += 4
-	v.header.entry = binary.LittleEndian.Uint32(v.Memory[offset : offset+4])
-	offset += 4
-	v.header.total = binary.LittleEndian.Uint32(v.Memory[offset : offset+4])
-	offset += 4
-	v.header.syms = binary.LittleEndian.Uint32(v.Memory[offset : offset+4])
-	offset += 4
+	br := bytes.NewReader(v.Memory)
+	binary.Read(br, binary.LittleEndian, &(v.Header))
 }
 
 func (v *VM) printRegister() {
 	for i := AX; i < DI; i++ {
-		fmt.Printf("%04x", v.CPU.GR[i])
-		fmt.Printf(" ")
+		fmt.Fprintf(os.Stderr, "%04x", v.CPU.GR[i])
+		fmt.Fprintf(os.Stderr, " ")
 	}
-	fmt.Printf("----")
-	fmt.Printf(" ")
-	fmt.Printf("%04x:", v.IP-1)
+	fmt.Fprintf(os.Stderr, "----")
+	fmt.Fprintf(os.Stderr, " ")
+	fmt.Fprintf(os.Stderr, "%04x:", v.IP-1)
 }
 
 func (v *VM) printInst() {
 	for _, b := range v.Debug.Buf {
-		fmt.Printf("%02x", b)
+		fmt.Fprintf(os.Stderr, "%02x", b)
 	}
 	// padding
 	for i := len(v.Debug.Buf) * 2; i < 13; i++ {
-		fmt.Printf(" ")
+		fmt.Fprintf(os.Stderr, " ")
 	}
 	switch v.Debug.Buf[0] {
 	case 0xb0:
@@ -213,19 +194,19 @@ func (v *VM) printInst() {
 	case 0xbe:
 		fallthrough
 	case 0xbf:
-		fmt.Printf("mov ")
-		fmt.Printf("%s, ", grname[(int)(v.Debug.Buf[0]&0b00001000|v.Debug.Buf[0]&0b00000111)])
+		fmt.Fprintf(os.Stderr, "mov ")
+		fmt.Fprintf(os.Stderr, "%s, ", grname[(int)(v.Debug.Buf[0]&0b00001000|v.Debug.Buf[0]&0b00000111)])
 		if v.Debug.Buf[0]&0b00001000 != 0 {
-			fmt.Printf("%02x", v.Debug.Buf[2])
+			fmt.Fprintf(os.Stderr, "%02x", v.Debug.Buf[2])
 		}
-		fmt.Printf("%02x", v.Debug.Buf[1])
+		fmt.Fprintf(os.Stderr, "%02x", v.Debug.Buf[1])
 	case 0xcc:
-		fmt.Printf("int 3")
+		fmt.Fprintf(os.Stderr, "int 3")
 	case 0xcd:
-		fmt.Printf("int ")
-		fmt.Printf("%02x", v.Debug.Buf[1])
+		fmt.Fprintf(os.Stderr, "int ")
+		fmt.Fprintf(os.Stderr, "%02x", v.Debug.Buf[1])
 	}
-	fmt.Printf("\n")
+	fmt.Fprintf(os.Stderr, "\n")
 }
 
 func (v *VM) Load(file string, debug bool) error {
@@ -240,12 +221,12 @@ func (v *VM) Load(file string, debug bool) error {
 	initSR(v)
 	initGR(v)
 	setHeader(v)
-	v.data = v.Memory[(uint32)(v.header.hdrlen) + v.header.text:]
+	v.Data = v.Memory[(uint32)(v.Header.Hdrlen)+v.Header.Text:]
 	return nil
 }
 
 func (v *VM) fetch() byte {
-	ret := v.Memory[(uint32)(v.header.hdrlen)+v.IP]
+	ret := v.Memory[(uint32)(v.Header.Hdrlen)+v.IP]
 	v.IP++
 	if v.Debug.DebugMode {
 		v.Debug.Buf = append(v.Debug.Buf, ret)
@@ -253,88 +234,68 @@ func (v *VM) fetch() byte {
 	return ret
 }
 
-func imd2regmem(v *VM, op byte) {
-	w := (int)(0b00001000&op) >> 3
-	reg := (int)(0b00000111 & op)
-	data := (uint16)(v.fetch())
-	if w != 0 {
-		data |= ((uint16)(v.fetch())) << 8
+func eabase(v *VM, rm uint16) uint16 {
+	switch rm {
+	case 0b000:
+		return v.CPU.GR[BX] + v.CPU.GR[SI]
+	case 0b001:
+		return v.CPU.GR[DX] + v.CPU.GR[DI]
+	case 0b010:
+		return v.CPU.GR[BP] + v.CPU.GR[SI]
+	case 0b011:
+		return v.CPU.GR[BP] + v.CPU.GR[DI]
+	case 0b100:
+		return v.CPU.GR[SI]
+	case 0b101:
+		return v.CPU.GR[DI]
+	case 0b110:
+		return v.CPU.GR[BP]
 	}
-	switch op {
-	case 0xb0:
-		fallthrough
-	case 0xb1:
-		fallthrough
-	case 0xb2:
-		fallthrough
-	case 0xb3:
-		fallthrough
-	case 0xb4:
-		fallthrough
-	case 0xb5:
-		fallthrough
-	case 0xb6:
-		fallthrough
-	case 0xb7:
-		fallthrough
-	case 0xb8:
-		fallthrough
-	case 0xb9:
-		fallthrough
-	case 0xba:
-		fallthrough
-	case 0xbb:
-		fallthrough
-	case 0xbc:
-		fallthrough
-	case 0xbd:
-		fallthrough
-	case 0xbe:
-		fallthrough
-	case 0xbf:
-		if w == 0 { // 8bit data
-			if reg <= BL { // low
-				v.CPU.GR[1<<3|reg] &= 0xff00
-				v.CPU.GR[1<<3|reg] |= data
-			} else { // high
-				v.CPU.GR[1<<3|reg] &= 0x00ff
-				v.CPU.GR[1<<3|reg] |= data << 8
-			}
-		} else { // 16bit data
-			v.CPU.GR[w<<3|reg] = data
-		}
-		return
-	}
+	return v.CPU.GR[BX]
 }
 
-func interrupt(v *VM, op byte) {
-	switch op {
-	case 0xcc:
-		return
-	case 0xcd:
-		data := v.fetch()
-		switch data {
-		}
-	}
-}
-
-func (v *VM) Run() {
+func (v *VM) Run() MSG {
+	var (
+		msg MSG
+		err error
+	)
 	if v.Debug.DebugMode {
 		// print register names
 		for i := AX; i < DI; i++ {
-			fmt.Printf(" %s ", strings.ToUpper(grname[i]))
-			fmt.Printf(" ")
+			fmt.Fprintf(os.Stderr, " %s ", strings.ToUpper(grname[i]))
+			fmt.Fprintf(os.Stderr, " ")
 		}
-		fmt.Printf("FLAGS")
-		fmt.Printf(" ")
-		fmt.Printf("IP\n")
+		fmt.Fprintf(os.Stderr, "FLAGS")
+		fmt.Fprintf(os.Stderr, " ")
+		fmt.Fprintf(os.Stderr, "IP\n")
 	}
 	for {
-		if v.IP == v.header.text {
+		if v.IP == v.Header.Text {
 			break
 		}
 		op := v.fetch()
 		switch op {
+		case 0x00:
+			fallthrough
+		case 0x01:
+			fallthrough
+		case 0x02:
+			fallthrough
+		case 0x03:
+		case 0x88:
+			fallthrough
+		case 0x89:
+			fallthrough
+		case 0x8a:
+			fallthrough
+		case 0x8b:
+			if v.Debug.DebugMode {
+				v.printRegister()
+			}
+			mov(v, op)
+			if v.Debug.DebugMode {
+				v.printInst()
+			}
 		case 0xb0:
 			fallthrough
 		case 0xb1:
@@ -369,23 +330,21 @@ func (v *VM) Run() {
 			if v.Debug.DebugMode {
 				v.printRegister()
 			}
-			imd2regmem(v, op) //mov immediate to register/memory
+			mov(v, op) //mov immediate to register/memory
 			if v.Debug.DebugMode {
 				v.printInst()
 			}
 		case 0xcc:
 			fallthrough
 		case 0xcd:
-			if v.Debug.DebugMode {
-				v.printRegister()
-			}
-			interrupt(v, op) //int
-			if v.Debug.DebugMode {
-				v.printInst()
+			if msg, err = interrupt(v, op); err != nil {
+				goto ret
 			}
 		}
 		if v.Debug.DebugMode {
 			v.Debug.Buf = v.Debug.Buf[:0] // set length to 0
 		}
 	}
+ret:
+	return msg
 }
