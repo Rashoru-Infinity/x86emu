@@ -1,6 +1,8 @@
 package vm
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+)
 
 func inc(v *VM, op byte) {
 	v.CPU.FR[OF] = (v.CPU.GR[(int)(1<<3|op&0b00000111)] < 0x8000 && v.CPU.GR[(int)(1<<3|op&0b00000111)]+1 >= 0x8000)
@@ -209,14 +211,14 @@ func grp5inc(v *VM, mod, rm byte) {
 			v.Data[eabase(v, uint16(rm))+uint16(disp)] = byte((val + 1) & 0x00ff)
 			v.Data[eabase(v, uint16(rm))+uint16(disp)+1] = byte((val + 1) >> 8)
 		} else {
-			val := binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-uint16(^disp+1):])
+			val := binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-uint16(^disp+1)&0x00ff:])
 			v.CPU.FR[OF] = val < 0x8000 && val+1 >= 0x8000
 			v.CPU.FR[SF] = val+1 >= 0x8000
 			v.CPU.FR[ZF] = val+1 == 0
 			v.CPU.FR[AF] = val&0x0f+1 > 0x0f
 			v.CPU.FR[PF] = checkPF((uint8)(val + 1))
-			v.Data[eabase(v, uint16(rm))-uint16(^disp+1)] = byte((val + 1) & 0x00ff)
-			v.Data[eabase(v, uint16(rm))-uint16(^disp+1)+1] = byte((val + 1) >> 8)
+			v.Data[eabase(v, uint16(rm))-uint16(^disp+1)&0x00ff] = byte((val + 1) & 0x00ff)
+			v.Data[eabase(v, uint16(rm))-uint16(^disp+1)&0x00ff+1] = byte((val + 1) >> 8)
 		}
 	case 0b10:
 		disp := uint16(v.fetch()) | uint16(v.fetch())<<8

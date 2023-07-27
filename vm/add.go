@@ -530,7 +530,7 @@ func grp1add(v *VM, s, w, mod, rm uint8) {
 			v.Data[eabase(v, uint16(rm))+1] = byte(val >> 8)
 			return
 		} else if s == 1 && w == 1 {
-			data := uint16(v.fetch()) << 8
+			data := uint16(v.fetch())
 			if data >= 0x80 {
 				data = 0xff00 | data
 			}

@@ -508,6 +508,8 @@ func shl(v *VM, w, mod, rm byte, count uint8) {
 				v.CPU.FR[OF] = v.Data[disp]>>7 == 1
 			}
 			v.CPU.FR[PF] = checkPF(v.Data[disp])
+			v.CPU.FR[ZF] = v.Data[disp] == 0
+			v.CPU.FR[SF] = v.Data[disp]&0x80 != 0
 			return
 		}
 		for _cnt := 0; _cnt < int(count&0x1f%8); _cnt++ {
@@ -520,6 +522,8 @@ func shl(v *VM, w, mod, rm byte, count uint8) {
 			v.CPU.FR[OF] = v.Data[eabase(v, uint16(rm))]>>7 == 1
 		}
 		v.CPU.FR[PF] = checkPF(v.Data[eabase(v, uint16(rm))])
+		v.CPU.FR[ZF] = v.Data[eabase(v, uint16(rm))] == 0
+		v.CPU.FR[SF] = v.Data[eabase(v, uint16(rm))]&0x80 != 0
 	case 0b01:
 		disp := v.fetch()
 		if disp < 0x80 {
@@ -533,6 +537,8 @@ func shl(v *VM, w, mod, rm byte, count uint8) {
 				v.CPU.FR[OF] = v.Data[eabase(v, uint16(rm))+uint16(disp)]>>7 == 1
 			}
 			v.CPU.FR[PF] = checkPF(v.Data[eabase(v, uint16(rm))+uint16(disp)])
+			v.CPU.FR[ZF] = v.Data[eabase(v, uint16(rm))+uint16(disp)] == 0
+			v.CPU.FR[SF] = v.Data[eabase(v, uint16(rm))+uint16(disp)]&0x80 != 0
 		} else {
 			for _cnt := 0; _cnt < int(count&0x1f%8); _cnt++ {
 				v.CPU.FR[CF] = v.Data[eabase(v, uint16(rm))-uint16(^disp+1)]>>7 == 1
@@ -544,6 +550,8 @@ func shl(v *VM, w, mod, rm byte, count uint8) {
 				v.CPU.FR[OF] = v.Data[eabase(v, uint16(rm))-uint16(^disp+1)]>>7 == 1
 			}
 			v.CPU.FR[PF] = checkPF(v.Data[eabase(v, uint16(rm))-uint16(^disp+1)])
+			v.CPU.FR[ZF] = v.Data[eabase(v, uint16(rm))-uint16(^disp+1)] == 0
+			v.CPU.FR[SF] = v.Data[eabase(v, uint16(rm))-uint16(^disp+1)]&0x80 != 0
 		}
 	case 0b10:
 		disp := uint16(v.fetch()) | uint16(v.fetch())<<8
@@ -557,6 +565,8 @@ func shl(v *VM, w, mod, rm byte, count uint8) {
 			v.CPU.FR[OF] = v.Data[eabase(v, uint16(rm))+disp]>>7 == 1
 		}
 		v.CPU.FR[PF] = checkPF(v.Data[eabase(v, uint16(rm))+disp])
+		v.CPU.FR[ZF] = v.Data[eabase(v, uint16(rm))+disp] == 0
+		v.CPU.FR[SF] = v.Data[eabase(v, uint16(rm))+disp]&0x80 != 0
 	case 0b11:
 		switch w<<3 | rm {
 		case AL:
@@ -578,6 +588,8 @@ func shl(v *VM, w, mod, rm byte, count uint8) {
 				v.CPU.FR[OF] = tmp>>7 == 1
 			}
 			v.CPU.FR[PF] = checkPF(tmp)
+			v.CPU.FR[ZF] = tmp == 0
+			v.CPU.FR[SF] = tmp&0x80 != 0
 		case AH:
 			fallthrough
 		case CH:
@@ -597,6 +609,8 @@ func shl(v *VM, w, mod, rm byte, count uint8) {
 				v.CPU.FR[OF] = tmp>>7 == 1
 			}
 			v.CPU.FR[PF] = checkPF(tmp)
+			v.CPU.FR[ZF] = tmp == 0
+			v.CPU.FR[SF] = tmp&0x80 != 0
 		default:
 			for _cnt := 0; _cnt < int(count&0x1f%16); _cnt++ {
 				v.CPU.FR[CF] = v.CPU.GR[int(w<<3|rm)]>>15 == 1
@@ -608,6 +622,8 @@ func shl(v *VM, w, mod, rm byte, count uint8) {
 				v.CPU.FR[OF] = v.CPU.GR[int(w<<3|rm)]>>15 == 1
 			}
 			v.CPU.FR[PF] = checkPF(uint8(v.CPU.GR[int(w<<3|rm)] & 0x00ff))
+			v.CPU.FR[ZF] = v.CPU.GR[int(w<<3|rm)] == 0
+			v.CPU.FR[SF] = v.CPU.GR[int(w<<3|rm)]&0x8000 != 0
 		}
 	}
 }
@@ -625,6 +641,8 @@ func shr(v *VM, w, mod, rm byte, count uint8) {
 				v.Data[disp] /= 2
 			}
 			v.CPU.FR[PF] = checkPF(v.Data[disp])
+			v.CPU.FR[ZF] = v.Data[disp] == 0
+			v.CPU.FR[SF] = v.Data[disp]&0x80 != 0
 			return
 		}
 		if count&0x1f%8 == 1 {
@@ -635,6 +653,8 @@ func shr(v *VM, w, mod, rm byte, count uint8) {
 			v.Data[eabase(v, uint16(rm))] /= 2
 		}
 		v.CPU.FR[PF] = checkPF(v.Data[eabase(v, uint16(rm))])
+		v.CPU.FR[ZF] = v.Data[eabase(v, uint16(rm))] == 0
+		v.CPU.FR[SF] = v.Data[eabase(v, uint16(rm))]&0x80 != 0
 	case 0b01:
 		disp := v.fetch()
 		if disp < 0x80 {
@@ -646,6 +666,8 @@ func shr(v *VM, w, mod, rm byte, count uint8) {
 				v.Data[eabase(v, uint16(rm))+uint16(disp)] /= 2
 			}
 			v.CPU.FR[PF] = checkPF(v.Data[eabase(v, uint16(rm))+uint16(disp)])
+			v.CPU.FR[ZF] = v.Data[eabase(v, uint16(rm))+uint16(disp)] == 0
+			v.CPU.FR[SF] = v.Data[eabase(v, uint16(rm))+uint16(disp)]&0x80 != 0
 		} else {
 			if count&0x1f%8 == 1 {
 				v.CPU.FR[OF] = v.Data[eabase(v, uint16(rm))-uint16(^disp+1)]>>7 == 1
@@ -655,6 +677,8 @@ func shr(v *VM, w, mod, rm byte, count uint8) {
 				v.Data[eabase(v, uint16(rm))-uint16(^disp+1)] /= 2
 			}
 			v.CPU.FR[PF] = checkPF(v.Data[eabase(v, uint16(rm))-uint16(^disp+1)])
+			v.CPU.FR[ZF] = v.Data[eabase(v, uint16(rm))-uint16(^disp+1)] == 0
+			v.CPU.FR[SF] = v.Data[eabase(v, uint16(rm))-uint16(^disp+1)]&0x80 != 0
 		}
 	case 0b10:
 		disp := uint16(v.fetch()) | uint16(v.fetch())<<8
@@ -666,6 +690,8 @@ func shr(v *VM, w, mod, rm byte, count uint8) {
 			v.Data[eabase(v, uint16(rm))+disp] /= 2
 		}
 		v.CPU.FR[PF] = checkPF(v.Data[eabase(v, uint16(rm))+disp])
+		v.CPU.FR[ZF] = v.Data[eabase(v, uint16(rm))+disp] == 0
+		v.CPU.FR[SF] = v.Data[eabase(v, uint16(rm))+disp]&0x80 != 0
 	case 0b11:
 		switch w<<3 | rm {
 		case AL:
@@ -685,6 +711,8 @@ func shr(v *VM, w, mod, rm byte, count uint8) {
 			}
 			v.CPU.GR[int(1<<3|rm)] = v.CPU.GR[int(1<<3|rm)]&0xff00 | uint16(tmp)
 			v.CPU.FR[PF] = checkPF(tmp)
+			v.CPU.FR[ZF] = tmp == 0
+			v.CPU.FR[SF] = tmp&0x80 != 0
 		case AH:
 			fallthrough
 		case CH:
@@ -702,6 +730,8 @@ func shr(v *VM, w, mod, rm byte, count uint8) {
 			}
 			v.CPU.GR[int(1<<3|rm&0x03)] = v.CPU.GR[int(1<<3|rm&0x03)]&0x00ff | uint16(tmp)<<8
 			v.CPU.FR[PF] = checkPF(tmp)
+			v.CPU.FR[ZF] = tmp == 0
+			v.CPU.FR[SF] = tmp&0x80 != 0
 		default:
 			if count&0x1f%16 == 1 {
 				v.CPU.FR[OF] = v.CPU.GR[int(1<<3|rm)]>>15 == 1
@@ -711,6 +741,8 @@ func shr(v *VM, w, mod, rm byte, count uint8) {
 				v.CPU.GR[int(w<<3|rm)] /= 2
 			}
 			v.CPU.FR[PF] = checkPF(uint8(v.CPU.GR[int(1<<3|rm)] & 0x00ff))
+			v.CPU.FR[ZF] = v.CPU.GR[int(w<<3|rm)] == 0
+			v.CPU.FR[SF] = v.CPU.GR[int(w<<3|rm)]&0x8000 != 0
 		}
 	}
 }
@@ -727,6 +759,8 @@ func sar(v *VM, w, mod, rm byte, count uint8) {
 			}
 			v.CPU.FR[OF] = false
 			v.CPU.FR[PF] = checkPF(v.Data[disp])
+			v.CPU.FR[ZF] = v.Data[disp] == 0
+			v.CPU.FR[SF] = v.Data[disp]&0x80 != 0
 			return
 		}
 		sign := v.Data[eabase(v, uint16(rm))] & 0x80
@@ -736,6 +770,8 @@ func sar(v *VM, w, mod, rm byte, count uint8) {
 		}
 		v.CPU.FR[OF] = false
 		v.CPU.FR[PF] = checkPF(v.Data[eabase(v, uint16(rm))])
+		v.CPU.FR[ZF] = v.Data[eabase(v, uint16(rm))] == 0
+		v.CPU.FR[SF] = v.Data[eabase(v, uint16(rm))]&0x80 != 0
 	case 0b01:
 		disp := v.fetch()
 		if disp < 0x80 {
@@ -746,6 +782,8 @@ func sar(v *VM, w, mod, rm byte, count uint8) {
 			}
 			v.CPU.FR[OF] = false
 			v.CPU.FR[PF] = checkPF(v.Data[eabase(v, uint16(rm))+uint16(disp)])
+			v.CPU.FR[ZF] = v.Data[eabase(v, uint16(rm))+uint16(disp)] == 0
+			v.CPU.FR[SF] = v.Data[eabase(v, uint16(rm))+uint16(disp)]&0x80 != 0
 		} else {
 			sign := v.Data[eabase(v, uint16(rm))-uint16(^disp+1)] & 0x80
 			for _cnt := 0; _cnt < int(count&0x1f%8); _cnt++ {
@@ -754,6 +792,8 @@ func sar(v *VM, w, mod, rm byte, count uint8) {
 			}
 			v.CPU.FR[OF] = false
 			v.CPU.FR[PF] = checkPF(v.Data[eabase(v, uint16(rm))-uint16(^disp+1)])
+			v.CPU.FR[ZF] = v.Data[eabase(v, uint16(rm))-uint16(^disp+1)] == 0
+			v.CPU.FR[SF] = v.Data[eabase(v, uint16(rm))-uint16(^disp+1)]&0x80 != 0
 		}
 	case 0b10:
 		disp := uint16(v.fetch()) | uint16(v.fetch())<<8
@@ -763,6 +803,8 @@ func sar(v *VM, w, mod, rm byte, count uint8) {
 		}
 		v.CPU.FR[OF] = false
 		v.CPU.FR[PF] = checkPF(v.Data[eabase(v, uint16(rm))+disp])
+		v.CPU.FR[ZF] = v.Data[eabase(v, uint16(rm))+disp] == 0
+		v.CPU.FR[SF] = v.Data[eabase(v, uint16(rm))+disp]&0x80 != 0
 	case 0b11:
 		switch w<<3 | rm {
 		case AL:
@@ -780,6 +822,8 @@ func sar(v *VM, w, mod, rm byte, count uint8) {
 			v.CPU.GR[int(1<<3|rm)] = v.CPU.GR[int(1<<3|rm)]&0xff00 | uint16(tmp)
 			v.CPU.FR[OF] = false
 			v.CPU.FR[PF] = checkPF(tmp)
+			v.CPU.FR[ZF] = tmp == 0
+			v.CPU.FR[SF] = tmp&0x80 != 0
 		case AH:
 			fallthrough
 		case CH:
@@ -795,6 +839,8 @@ func sar(v *VM, w, mod, rm byte, count uint8) {
 			v.CPU.GR[int(1<<3|rm&0x03)] = v.CPU.GR[int(1<<3|rm&0x03)]&0x00ff | uint16(tmp)<<8
 			v.CPU.FR[OF] = false
 			v.CPU.FR[PF] = checkPF(tmp)
+			v.CPU.FR[ZF] = tmp == 0
+			v.CPU.FR[SF] = tmp&0x80 != 0
 		default:
 			for _cnt := 0; _cnt < int(count&0x1f%16); _cnt++ {
 				v.CPU.FR[CF] = v.CPU.GR[int(w<<3|rm)]>>15 == 1
@@ -802,6 +848,8 @@ func sar(v *VM, w, mod, rm byte, count uint8) {
 			}
 			v.CPU.FR[OF] = false
 			v.CPU.FR[PF] = checkPF(uint8(v.CPU.GR[int(1<<3|rm)] & 0x00ff))
+			v.CPU.FR[ZF] = v.CPU.GR[int(w<<3|rm)] == 0
+			v.CPU.FR[SF] = v.CPU.GR[int(w<<3|rm)]&0x8000 != 0
 		}
 	}
 }

@@ -26,7 +26,7 @@ func lea(v *VM, op byte) {
 			disp := (int)(v.fetch()) | ((int)(v.fetch()) << 8)
 			v.CPU.GR[(int)(1<<3|reg)] = eabase(v, (uint16)(rm)) + (uint16)(disp)
 		case 0b11:
-			v.CPU.GR[(int)(1<<3|reg)] = v.CPU.GR[(int)(1<<3|reg)]
+			v.CPU.GR[(int)(1<<3|reg)] = v.CPU.GR[(int)(1<<3|rm)]
 		}
 	}
 }

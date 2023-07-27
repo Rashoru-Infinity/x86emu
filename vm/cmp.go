@@ -256,7 +256,7 @@ func cmp(v *VM, op byte) {
 			default:
 				if d == 0 {
 					if disp < 0x80 {
-						val := binary.LittleEndian.Uint16(v.Data[eabase(v, (uint16)(rm))-(uint16)(disp):]) - v.CPU.GR[(int)(w<<3|reg)]
+						val := binary.LittleEndian.Uint16(v.Data[eabase(v, (uint16)(rm))+(uint16)(disp):]) - v.CPU.GR[(int)(w<<3|reg)]
 						v.CPU.FR[CF] = binary.LittleEndian.Uint16(v.Data[eabase(v, (uint16)(rm))+(uint16)(disp):]) < v.CPU.GR[(int)(w<<3|reg)]
 						v.CPU.FR[AF] = binary.LittleEndian.Uint16(v.Data[eabase(v, (uint16)(rm))+(uint16)(disp):])&0x0f < v.CPU.GR[(int)(w<<3|reg)]&0x0f
 						v.CPU.FR[ZF] = val == 0

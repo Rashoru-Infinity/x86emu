@@ -1,6 +1,8 @@
 package vm
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+)
 
 func jcc8(v *VM, op byte) {
 	const (
@@ -13,124 +15,144 @@ func jcc8(v *VM, op byte) {
 		if v.CPU.FR[OF] && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if v.CPU.FR[OF] && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x71:
 		if !v.CPU.FR[OF] && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if !v.CPU.FR[OF] && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x72:
 		if v.CPU.FR[CF] && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if v.CPU.FR[CF] && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x73:
 		if !v.CPU.FR[CF] && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if !v.CPU.FR[CF] && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x74:
 		if v.CPU.FR[ZF] && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if v.CPU.FR[ZF] && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x75:
 		if !v.CPU.FR[ZF] && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if !v.CPU.FR[ZF] && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x76:
 		if (v.CPU.FR[CF] || v.CPU.FR[ZF]) && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if (v.CPU.FR[CF] || v.CPU.FR[ZF]) && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x77:
 		if (!v.CPU.FR[CF] && !v.CPU.FR[ZF]) && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if (!v.CPU.FR[CF] && !v.CPU.FR[ZF]) && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x78:
 		if v.CPU.FR[SF] && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if v.CPU.FR[SF] && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x79:
 		if !v.CPU.FR[SF] && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if !v.CPU.FR[SF] && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x7a:
 		if v.CPU.FR[PF] && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if v.CPU.FR[PF] && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x7b:
 		if !v.CPU.FR[PF] && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if !v.CPU.FR[PF] && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x7c:
 		if v.CPU.FR[SF] != v.CPU.FR[OF] && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if v.CPU.FR[SF] != v.CPU.FR[OF] && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x7d:
 		if v.CPU.FR[SF] == v.CPU.FR[OF] && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if v.CPU.FR[SF] == v.CPU.FR[OF] && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x7e:
 		if (v.CPU.FR[SF] != v.CPU.FR[OF] || v.CPU.FR[ZF]) && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if (v.CPU.FR[SF] != v.CPU.FR[OF] || v.CPU.FR[ZF]) && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0x7f:
 		if v.CPU.FR[SF] == v.CPU.FR[OF] && !v.CPU.FR[ZF] && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if v.CPU.FR[SF] == v.CPU.FR[OF] && !v.CPU.FR[ZF] && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0xe0:
 		count := v.CPU.GR[CX] - 1
 		if !v.CPU.FR[ZF] && count != 0 && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if !v.CPU.FR[ZF] && count != 0 && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0xe1:
 		count := v.CPU.GR[CX] - 1
 		if v.CPU.FR[ZF] && count != 0 && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if v.CPU.FR[ZF] && count != 0 && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0xe2:
 		count := v.CPU.GR[CX] - 1
 		if count != 0 && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if count != 0 && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0xe3:
 		if v.CPU.GR[CX] == 0 && data < 0x80 {
 			v.IP = data + offset + opsize
 		} else if v.CPU.GR[CX] == 0 && data >= 0x80 {
-			v.IP = (^data + 1) + offset + opsize
+			data = 0xffffff00 | data
+			v.IP = offset - (^data + 1) + opsize
 		}
 	case 0xe9:
 		data |= uint32(v.fetch()) << 8

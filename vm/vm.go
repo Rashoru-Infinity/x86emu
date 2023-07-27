@@ -800,19 +800,6 @@ func (v *VM) Run() MSG {
 		}
 		if v.Debug.DebugMode {
 			v.Debug.Buf = v.Debug.Buf[:0] // set length to 0
-			/*
-				fmt.Fprintf(os.Stderr, "---stack---\n")
-				for i := 0; i < 10 && int(v.CPU.GR[SP])+i <= 0xffff; i++ {
-					fmt.Fprintf(os.Stderr, "%04x:%02x\n", v.CPU.GR[SP]+uint16(i), v.Data[int(v.CPU.GR[SP])+i])
-				}
-				fmt.Fprintf(os.Stderr, "-----------\n")
-			*/
-			/*
-				for _, v := range stacktop {
-					fmt.Fprintf(os.Stderr, " [%x: %x]", sp, v)
-					sp += 2
-				}
-			*/
 			fmt.Fprintf(os.Stderr, "\n")
 		}
 	}
