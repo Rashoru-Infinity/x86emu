@@ -1,21 +1,45 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"x86runtime/vm"
 )
 
+const (
+	EXECUTABLE = iota
+	FLAG
+	PASSTHROUGH
+	FINISH
+)
+
 func main() {
 	var (
-		fileName = flag.String("f", "", "Linux-8086 executable file")
-		debug    = flag.Bool("m", false, "Enable debug mode")
-		err      error
-		vm       vm.VM
+		debug = false
+		err   error
+		vm    vm.VM
+		args  []string
 	)
-	flag.Parse()
-	err = vm.Load(*fileName, *debug)
+	args = make([]string, 0, len(os.Args))
+	argStatus := EXECUTABLE
+	for _, v := range os.Args {
+		switch argStatus {
+		case EXECUTABLE:
+			argStatus = FLAG
+		case FLAG:
+			switch v {
+			case "-m":
+				debug = true
+			case "--":
+				argStatus = PASSTHROUGH
+			default:
+				args = append(args, v)
+			}
+		case PASSTHROUGH:
+			args = append(args, v)
+		}
+	}
+	err = vm.Load(args[0], debug, args)
 	if err != nil {
 		goto exception
 	}

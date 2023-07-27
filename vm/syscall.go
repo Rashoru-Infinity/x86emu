@@ -1,5 +1,7 @@
 package vm
 
+// #include <unistd.h>
+
 import (
 	"bytes"
 	"encoding/binary"
@@ -7,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"syscall"
+	"unsafe"
 )
 
 const (
@@ -152,17 +155,25 @@ type MSG struct {
 }
 
 func X86syscall(v *VM) (MSG, error) {
-	msg := MSG{}
-	br := bytes.NewReader(v.Data[v.CPU.GR[BX]:])
+	msg := (*MSG)(unsafe.Pointer(&v.Data[v.CPU.GR[BX]]))
 	var err error = nil
-	binary.Read(br, binary.LittleEndian, &msg)
+	/*
+		var br io.Reader
+		br = bytes.NewReader(v.Data[v.CPU.GR[BX]:])
+		binary.Read(br, binary.LittleEndian, &msg)
+	*/
+
+	//fmt.Fprintf(os.Stderr, "[%x]", msg)
+
+	//fmt.Fprintf(os.Stderr, "syscallnr: %d\n", msg.M_type)
+
 	switch msg.M_type {
 	case EXIT:
 		{
-			msg1 := MS1{}
-			arg := v.Data[v.CPU.GR[BX]+4:]
-			br = bytes.NewReader(arg)
-			binary.Read(br, binary.LittleEndian, &msg1)
+			msg1 := (*MS1)(unsafe.Pointer(&v.Data[v.CPU.GR[BX]+4]))
+			//arg := v.Data[v.CPU.GR[BX]+4:]
+			//br = bytes.NewReader(arg)
+			//binary.Read(br, binary.LittleEndian, &msg1)
 			if v.Debug.DebugMode {
 				fmt.Fprintf(os.Stderr, "<exit(%d)>\n", msg1.M1i1)
 			}
@@ -174,17 +185,18 @@ func X86syscall(v *VM) (MSG, error) {
 		{
 			msg1 := MS1{}
 			arg := v.Data[v.CPU.GR[BX]+4:]
-			br = bytes.NewReader(arg)
+			br := bytes.NewReader(arg)
 			binary.Read(br, binary.LittleEndian, &msg1)
 			if v.Debug.DebugMode {
-				fmt.Fprintf(os.Stderr, "<write(%d, 0x%04x, %d)", msg1.M1i1, v.CPU.GR[BX]+msg1.M1p1, msg1.M1i2)
+				fmt.Fprintf(os.Stderr, "<write(%d, 0x%04x, %d)", msg1.M1i1, msg1.M1p1, msg1.M1i2)
 			}
-			ret, err := syscall.Write((int)(msg1.M1i1), v.Data[v.CPU.GR[BX]+msg1.M1p1:v.CPU.GR[BX]+msg1.M1p1+(uint16)(msg1.M1i2)])
+			ret, err := syscall.Write((int)(msg1.M1i1), v.Data[msg1.M1p1:msg1.M1p1+(uint16)(msg1.M1i2)])
 			if err != nil {
 				msg.M_type = -(int16)(err.(syscall.Errno))
 				break
 			}
 			msg.M_type = (int16)(ret)
+			v.CPU.GR[AX] = 0
 			if v.Debug.DebugMode {
 				fmt.Fprintf(os.Stderr, " ==> %d>\n", msg.M_type)
 			}
@@ -202,6 +214,41 @@ func X86syscall(v *VM) (MSG, error) {
 	case CHMOD:
 	case CHOWN:
 	case BRK:
+		{
+			// x86minix.cpp minixbrk
+			msg1 := MS1{}
+			arg := v.Data[v.CPU.GR[BX]+4:]
+			br := bytes.NewReader(arg)
+			binary.Read(br, binary.LittleEndian, &msg1)
+			if v.Debug.DebugMode {
+				fmt.Fprintf(os.Stderr, "<brk(0x%04x) => ", msg1.M1p1)
+			}
+			/*
+				ret, _, err := syscall.Syscall(
+					syscall.SYS_BRK,
+					uintptr(v.Data[msg1.M1p1]),
+					uintptr(0),
+					uintptr(0),
+				)
+				if err != 0 {
+					msg.M_type = -(int16)(err)
+					break
+				} else {
+					msg.M_type = (int16)(ret)
+				}
+			*/
+			if uint32(msg1.M1p1) < v.Header.Data || uint32(msg1.M1p1) >= uint32(v.CPU.GR[SP]&^uint16(0x3ff)-0x400) {
+				msg.M_type = -(int16)(12)
+			} else {
+				msg.M_type = 0
+				v.Data[v.CPU.GR[BX]+18] = byte(uint16(msg1.M1p1) & 0x00ff)
+				v.Data[v.CPU.GR[BX]+18+1] = byte(uint16(msg1.M1p1) >> 8)
+			}
+			v.CPU.GR[AX] = 0
+			if v.Debug.DebugMode {
+				fmt.Fprintf(os.Stderr, " ==> %d>\n", msg.M_type)
+			}
+		}
 	case STAT:
 	case LSEEK:
 	case GETPID:
@@ -228,6 +275,32 @@ func X86syscall(v *VM) (MSG, error) {
 	case GETGID:
 	case SIGNAL:
 	case IOCTL:
+		{
+			// x86minix.cpp minixioctl
+			msg2 := MS2{}
+			arg := v.Data[v.CPU.GR[BX]+4:]
+			br := bytes.NewReader(arg)
+			binary.Read(br, binary.LittleEndian, &msg2)
+			if v.Debug.DebugMode {
+				fmt.Fprintf(os.Stderr, "<ioctl(%d, 0x%04x, 0x%04x)>\n", msg2.M2i1, msg2.M2i3, msg2.M2p1)
+				//fmt.Fprintf(os.Stderr, "<ioctl(%d, 0x%04x, 0x%04x)>\n", uintptr(msg2.M2i1), uintptr(msg2.M2i3), uintptr(unsafe.Pointer(&v.Data[msg2.M2p1])))
+			}
+			v.CPU.GR[AX] = 0
+			/*
+					ret, _, err := syscall.Syscall(
+						syscall.SYS_IOCTL,
+						uintptr(msg2.M2i1),
+						uintptr(msg2.M2i3),
+						uintptr(unsafe.Pointer(&v.Data[msg2.M2p1])),
+					)
+				if err != 0 {
+					msg.M_type = -(int16)(22)
+				} else {
+					msg.M_type = (int16)(ret)
+				}
+			*/
+			msg.M_type = -(int16)(22)
+		}
 	case FCNTL:
 	case EXEC:
 	case UMASK:
@@ -246,5 +319,5 @@ func X86syscall(v *VM) (MSG, error) {
 	case REBOOT:
 	case SVRCTL:
 	}
-	return msg, err
+	return *msg, err
 }
