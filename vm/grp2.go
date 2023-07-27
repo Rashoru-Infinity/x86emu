@@ -843,8 +843,8 @@ func sar(v *VM, w, mod, rm byte, count uint8) {
 			v.CPU.FR[SF] = tmp&0x80 != 0
 		default:
 			for _cnt := 0; _cnt < int(count&0x1f%16); _cnt++ {
-				v.CPU.FR[CF] = v.CPU.GR[int(w<<3|rm)]>>15 == 1
-				v.CPU.GR[int(w<<3|rm)] = v.CPU.GR[int(w<<3|rm)] & 0x7f / 2
+				v.CPU.FR[CF] = v.CPU.GR[int(w<<3|rm)]&0x0001 == 1
+				v.CPU.GR[int(w<<3|rm)] = (v.CPU.GR[int(w<<3|rm)] & 0x7fff / 2) | (v.CPU.GR[int(w<<3|rm)] & 0x8000)
 			}
 			v.CPU.FR[OF] = false
 			v.CPU.FR[PF] = checkPF(uint8(v.CPU.GR[int(1<<3|rm)] & 0x00ff))
