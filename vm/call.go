@@ -24,21 +24,21 @@ func grp5call(v *VM, mod, rm byte) {
 	case 0b00:
 		if rm == 0b110 {
 			disp := uint16(v.fetch()) | uint16(v.fetch())<<8
-			v.IP += uint32(binary.LittleEndian.Uint16(v.Data[disp:]))
+			v.IP = uint32(binary.LittleEndian.Uint16(v.Data[disp:]))
 			return
 		}
-		v.IP += uint32(binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm)):]))
+		v.IP = uint32(binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm)):]))
 	case 0b01:
 		disp := v.fetch()
 		if disp < 0x80 {
-			v.IP += uint32(binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))+uint16(disp):]))
+			v.IP = uint32(binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))+uint16(disp):]))
 		} else {
-			v.IP += uint32(binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-uint16(^disp+1):]))
+			v.IP = uint32(binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-uint16(^disp+1):]))
 		}
 	case 0b10:
 		disp := uint16(v.fetch()) | uint16(v.fetch())<<8
-		v.IP += uint32(binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))+disp:]))
+		v.IP = uint32(binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))+disp:]))
 	case 0b11:
-		v.IP += uint32(v.CPU.GR[int(1<<3|rm)])
+		v.IP = uint32(v.CPU.GR[int(1<<3|rm)])
 	}
 }

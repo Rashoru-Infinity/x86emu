@@ -1,6 +1,8 @@
 package vm
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+)
 
 func cmp(v *VM, op byte) {
 	switch op {
@@ -615,10 +617,10 @@ func grp1cmp(v *VM, s, w, mod, rm uint8) {
 			val := binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1):]) - data
 			v.CPU.FR[ZF] = val == 0
 			v.CPU.FR[SF] = val >= 0x8000
-			v.CPU.FR[CF] = binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1):]) < data
-			v.CPU.FR[OF] = (binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1):]) < 0x8000 && data >= 0x8000 && val >= 0x8000) || (binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1):]) >= 0x8000 && data < 0x8000 && val < 0x8000)
+			v.CPU.FR[CF] = binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)&0x00ff:]) < data
+			v.CPU.FR[OF] = (binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)&0x00ff:]) < 0x8000 && data >= 0x8000 && val >= 0x8000) || (binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)&0x00ff:]) >= 0x8000 && data < 0x8000 && val < 0x8000)
 			v.CPU.FR[PF] = checkPF((uint8)(val & 0x00ff))
-			v.CPU.FR[AF] = binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1):])&0x0f < data&0x0f
+			v.CPU.FR[AF] = binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)&0x00ff:])&0x0f < data&0x0f
 			return
 		} else if s == 1 && w == 1 && disp < 0x80 {
 			data := uint16(v.fetch())
@@ -638,13 +640,13 @@ func grp1cmp(v *VM, s, w, mod, rm uint8) {
 			if data >= 0x80 {
 				data = 0xff00 | data
 			}
-			val := binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1):]) - data
+			val := binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)&0x00ff:]) - data
 			v.CPU.FR[ZF] = val == 0
 			v.CPU.FR[SF] = val >= 0x8000
-			v.CPU.FR[CF] = binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1):]) < data
-			v.CPU.FR[OF] = (binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1):]) < 0x8000 && data >= 0x8000 && val >= 0x8000) || (binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1):]) >= 0x8000 && data < 0x8000 && val < 0x8000)
+			v.CPU.FR[CF] = binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)&0x00ff:]) < data
+			v.CPU.FR[OF] = (binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)&0x00ff:]) < 0x8000 && data >= 0x8000 && val >= 0x8000) || (binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)&0x00ff:]) >= 0x8000 && data < 0x8000 && val < 0x8000)
 			v.CPU.FR[PF] = checkPF((uint8)(val & 0x00ff))
-			v.CPU.FR[AF] = binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1):])&0x0f < data&0x0f
+			v.CPU.FR[AF] = binary.LittleEndian.Uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)&0x00ff:])&0x0f < data&0x0f
 			return
 		}
 		data := uint16(v.fetch())
@@ -658,13 +660,13 @@ func grp1cmp(v *VM, s, w, mod, rm uint8) {
 			v.CPU.FR[AF] = uint16(v.Data[eabase(v, uint16(rm))+disp])&0x0f < data&0x0f
 			return
 		} else if disp >= 0x80 {
-			val := uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)]) - data
+			val := uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)&0x00ff]) - data
 			v.CPU.FR[ZF] = val&0x00ff == 0
 			v.CPU.FR[SF] = val&0x00ff >= 0x80
-			v.CPU.FR[CF] = uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)]) < data
-			v.CPU.FR[OF] = (v.Data[eabase(v, uint16(rm))-(^disp+1)] < 0x80 && data >= 0x80 && val&0x00ff >= 0x80) || (v.Data[eabase(v, uint16(rm))-(^disp+1)] >= 0x80 && data < 0x80 && val&0x00ff < 0x80)
+			v.CPU.FR[CF] = uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)&0x00ff]) < data
+			v.CPU.FR[OF] = (v.Data[eabase(v, uint16(rm))-(^disp+1)&0x00ff] < 0x80 && data >= 0x80 && val&0x00ff >= 0x80) || (v.Data[eabase(v, uint16(rm))-(^disp+1)&0x00ff] >= 0x80 && data < 0x80 && val&0x00ff < 0x80)
 			v.CPU.FR[PF] = checkPF((uint8)(val & 0x00ff))
-			v.CPU.FR[AF] = uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)]&0x0f) < data&0x0f
+			v.CPU.FR[AF] = uint16(v.Data[eabase(v, uint16(rm))-(^disp+1)&0x00ff]&0x0f) < data&0x0f
 			return
 		}
 	case 0b10:
